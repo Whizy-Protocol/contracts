@@ -532,7 +532,6 @@ contract WhizyPredictionMarketTest is Test {
             2970 * 1e6 + yieldFinal,
             "USDC"
         );
-
         console.log("\n[PASS] Multi-protocol system working correctly");
     }
 }

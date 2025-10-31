@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -52,6 +51,7 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     address public protocolSelector;
     uint256 public feePercentage;
     address public feeRecipient;
+    mapping(address => bool) public operators;
 
     mapping(uint256 => Market) public markets;
     mapping(uint256 => mapping(address => Position)) public positions;
@@ -77,6 +77,7 @@ contract WhizyPredictionMarket is ReentrancyGuard {
         address indexed user,
         uint256 amount
     );
+    event MarketVaultRebalanced(uint256 indexed marketId, uint256 amount);
 
     error MarketNotFound();
     error MarketEnded();
@@ -84,12 +85,14 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     error InvalidAmount();
     error AlreadyClaimed();
     error NoPosition();
+    error NotOperator();
 
     constructor(address _accessControl, address _protocolSelector) {
         ACCESS_CONTROL = AccessControl(_accessControl);
         protocolSelector = _protocolSelector;
         feePercentage = DEFAULT_FEE;
         feeRecipient = msg.sender;
+        operators[msg.sender] = true;
     }
 
     /**
@@ -317,6 +320,50 @@ contract WhizyPredictionMarket is ReentrancyGuard {
             (totalAssets, , currentYield, yieldWithdrawn, ) = market
                 .vault
                 .getVaultInfo();
+        }
+    }
+
+    /**
+     * @dev Rebalance a market's vault to optimal yield protocol
+     * Can be called by authorized operators (backend service)
+     */
+    function rebalanceMarketVault(uint256 marketId) external {
+        if (!operators[msg.sender]) revert NotOperator();
+
+        Market storage market = markets[marketId];
+        require(market.id == marketId, "Market not found");
+        require(market.status == MarketStatus.Active, "Market not active");
+
+        market.vault.rebalance();
+
+        emit MarketVaultRebalanced(marketId, market.vault.totalAssets());
+    }
+
+    /**
+     * @dev Add operator who can trigger vault rebalancing
+     */
+    function addOperator(address operator) external {
+        ACCESS_CONTROL.assertOwner(msg.sender);
+        operators[operator] = true;
+
+        for (uint256 i = 0; i < nextMarketId; i++) {
+            if (address(markets[i].vault) != address(0)) {
+                markets[i].vault.addOperator(operator);
+            }
+        }
+    }
+
+    /**
+     * @dev Remove operator
+     */
+    function removeOperator(address operator) external {
+        ACCESS_CONTROL.assertOwner(msg.sender);
+        operators[operator] = false;
+
+        for (uint256 i = 0; i < nextMarketId; i++) {
+            if (address(markets[i].vault) != address(0)) {
+                markets[i].vault.removeOperator(operator);
+            }
         }
     }
 

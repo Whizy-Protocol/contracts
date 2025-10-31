@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
@@ -31,12 +30,21 @@ contract MarketVault is ERC4626 {
 
     event YieldDeposited(uint256 amount);
     event YieldWithdrawn(address indexed recipient, uint256 amount);
+    event VaultRebalanced(uint256 amount);
 
     error OnlyMarket();
     error YieldDisabled();
 
+    mapping(address => bool) public operators;
+    address public owner;
+
     modifier onlyMarket() {
         if (msg.sender != MARKET) revert OnlyMarket();
+        _;
+    }
+
+    modifier onlyOperator() {
+        require(operators[msg.sender] || msg.sender == owner, "Not authorized");
         _;
     }
 
@@ -58,6 +66,8 @@ contract MarketVault is ERC4626 {
         MARKET = market_;
         PROTOCOL_SELECTOR = ProtocolSelector(protocolSelector_);
         yieldEnabled = protocolSelector_ != address(0);
+        owner = market_;
+        operators[market_] = true;
     }
 
     /**
@@ -222,6 +232,53 @@ contract MarketVault is ERC4626 {
         uint256 shares
     ) external view returns (uint256 assets) {
         assets = convertToAssets(shares);
+    }
+
+    /**
+     * @dev Rebalance vault funds to optimal yield protocol
+     * Can be called by authorized operators (backend service)
+     */
+    function rebalance() external onlyOperator {
+        if (!yieldEnabled || address(PROTOCOL_SELECTOR) == address(0)) {
+            revert YieldDisabled();
+        }
+
+        uint256 protocolBalance = PROTOCOL_SELECTOR.getTotalBalance(
+            address(this),
+            IERC20(asset())
+        );
+
+        if (protocolBalance == 0) {
+            return;
+        }
+
+        uint256 withdrawn = PROTOCOL_SELECTOR.autoWithdraw(
+            IERC20(asset()),
+            protocolBalance
+        );
+
+        if (withdrawn > 0) {
+            IERC20(asset()).safeIncreaseAllowance(
+                address(PROTOCOL_SELECTOR),
+                withdrawn
+            );
+            PROTOCOL_SELECTOR.autoDeposit(IERC20(asset()), withdrawn);
+            emit VaultRebalanced(withdrawn);
+        }
+    }
+
+    /**
+     * @dev Add operator who can rebalance the vault
+     */
+    function addOperator(address operator) external onlyMarket {
+        operators[operator] = true;
+    }
+
+    /**
+     * @dev Remove operator
+     */
+    function removeOperator(address operator) external onlyMarket {
+        operators[operator] = false;
     }
 
     /**

@@ -1,16 +1,18 @@
 # Whizy Protocol - Smart Contracts
 
-A decentralized prediction market protocol with automated yield generation through DeFi protocol integration.
+A decentralized prediction market protocol with automated yield generation and auto-rebalancing through DeFi protocol integration.
 
 ## Overview
 
-Whizy Protocol enables users to create and participate in prediction markets while automatically earning yield on their deposited collateral through integration with leading DeFi protocols like Aave, Compound, and Morpho.
+Whizy Protocol enables users to create and participate in prediction markets while automatically earning yield on their deposited collateral through integration with leading DeFi protocols like Aave, Compound, and Morpho. Users can delegate auto-rebalancing authority to backend operators for optimal yield management.
 
 ### Key Features
 
 - **Yield-Generating Predictions**: Collateral automatically earns yield through DeFi protocols
 - **ERC4626 Vault Architecture**: Each market has its own vault for transparent asset management
 - **Multi-Protocol Integration**: Supports Aave, Compound, and Morpho with automatic best-yield selection
+- **Delegated Auto-Rebalancing**: Non-custodial delegation allowing operators to rebalance for optimal yields
+- **Risk-Based Profiles**: Users choose low/medium/high risk profiles for personalized strategies
 - **Fair Reward Distribution**: Winners receive their stake plus loser's stake plus proportional yield
 - **Gas-Optimized Design**: Minimal overhead with efficient share-based accounting
 
@@ -49,12 +51,32 @@ Intelligent protocol selection system that automatically chooses the best yield 
 - Morpho (Type 2)
 - Compound (Type 3)
 
+#### RebalancerDelegation
+Non-custodial delegation contract allowing users to opt-in to automatic rebalancing.
+
+**Key Features:**
+- Users deposit USDC and enable auto-rebalancing with risk profiles (1=low, 2=medium, 3=high)
+- Backend operators can rebalance user funds to optimal protocols
+- Users maintain custody and can withdraw anytime
+- Users can enable/disable auto-rebalancing without withdrawing
+
+**Key Functions:**
+- `depositAndEnable(amount, riskProfile)` - Deposit and enable auto-rebalancing
+- `withdraw(amount)` - Withdraw funds (amount=0 for full withdrawal)
+- `enableAutoRebalance(riskProfile)` - Enable auto-rebalancing with risk profile
+- `disableAutoRebalance()` - Disable auto-rebalancing (funds remain deposited)
+- `rebalance(user)` - Operator rebalances user's funds to best protocol
+- `addOperator(operator)` - Owner adds authorized operator
+- `removeOperator(operator)` - Owner removes operator
+
 ### Architecture Benefits
 
 1. **Per-Market Vaults**: Each market has its own ERC4626 vault for clean accounting
 2. **Automatic Yield**: Collateral is automatically deployed to highest-yielding protocols
-3. **Share-Based Accounting**: ERC4626 standard ensures accurate yield distribution
-4. **Protocol Abstraction**: Adapters provide consistent interface across different DeFi protocols
+3. **Delegated Rebalancing**: Non-custodial architecture with user-controlled auto-rebalancing
+4. **Share-Based Accounting**: ERC4626 standard ensures accurate yield distribution
+5. **Protocol Abstraction**: Adapters provide consistent interface across different DeFi protocols
+6. **Risk Management**: Users control their risk appetite with configurable risk profiles
 
 ## Contract Deployment
 
@@ -101,7 +123,65 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 5. **Prediction Market**
    - Main contract linking all components
 
+6. **RebalancerDelegation**
+   - Non-custodial auto-rebalancing contract
+   - Connect to ProtocolSelector and USDC
+   - Add authorized operators for backend
+
 ## Usage Examples
+
+### Using RebalancerDelegation
+
+#### User: Deposit and Enable Auto-Rebalancing
+
+```solidity
+// Approve USDC for delegation contract
+usdc.approve(address(rebalancerDelegation), 1000e6);
+
+// Deposit and enable auto-rebalancing with low risk profile
+rebalancerDelegation.depositAndEnable(1000e6, 1); // 1=low, 2=medium, 3=high
+
+// Check user configuration
+(bool enabled, uint8 risk, uint256 deposited) = rebalancerDelegation.userConfigs(userAddress);
+```
+
+#### User: Withdraw Funds
+
+```solidity
+// Withdraw specific amount
+rebalancerDelegation.withdraw(500e6);
+
+// Withdraw all (pass deposited amount or calculate from balance)
+uint256 userBalance = protocolSelector.getTotalBalance(address(rebalancerDelegation), usdc);
+rebalancerDelegation.withdraw(userBalance);
+```
+
+#### User: Enable/Disable Auto-Rebalancing
+
+```solidity
+// Disable auto-rebalancing (funds remain deposited)
+rebalancerDelegation.disableAutoRebalance();
+
+// Re-enable with different risk profile
+rebalancerDelegation.enableAutoRebalance(2); // Switch to medium risk
+```
+
+#### Operator: Rebalance User Funds
+
+```solidity
+// Backend operator rebalances user to best protocol
+rebalancerDelegation.rebalance(userAddress);
+```
+
+#### Owner: Manage Operators
+
+```solidity
+// Add new operator
+rebalancerDelegation.addOperator(operatorAddress);
+
+// Remove operator
+rebalancerDelegation.removeOperator(operatorAddress);
+```
 
 ### Creating a Market
 
@@ -187,6 +267,9 @@ forge test -vv
 # Run specific test
 forge test --match-test test_YieldAccrual
 
+# Run delegation tests
+forge test --match-contract RebalancerDelegationTest
+
 # Generate coverage report
 forge coverage
 ```
@@ -199,6 +282,9 @@ forge coverage
 - Yield accrual and distribution
 - Winner/loser payout calculations
 - Protocol selection and yield optimization
+- Delegation contract operations (deposit, withdraw, enable/disable)
+- Operator-based rebalancing
+- Access control and authorization
 - Emergency functions and access control
 
 ## Configuration
@@ -233,6 +319,8 @@ Owners can update:
 ### Access Control
 - Owner-only functions for market creation and resolution
 - Protocol registration restricted to owners
+- Operator-based rebalancing with authorization checks
+- Users can enable/disable auto-rebalancing at any time
 - Emergency withdrawal capabilities
 
 ### Reentrancy Protection
@@ -243,6 +331,13 @@ Owners can update:
 - Protocol failures handled gracefully
 - Automatic fallback to vault-only storage
 - Individual protocol risk assessments
+- User-controlled risk profiles for personalized strategies
+
+### Non-Custodial Architecture
+- Users maintain custody of their funds
+- Operators can only rebalance, not withdraw user funds
+- Users can withdraw anytime regardless of auto-rebalance status
+- Transparent on-chain configuration and balances
 
 ### Precision and Rounding
 - Share-based accounting prevents precision loss

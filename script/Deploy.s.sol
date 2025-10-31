@@ -12,6 +12,7 @@ import {MorphoFork} from "../src/forks/MorphoFork.sol";
 import {AaveAdapter} from "../src/adapters/AaveAdapter.sol";
 import {CompoundAdapter} from "../src/adapters/CompoundAdapter.sol";
 import {MorphoAdapter} from "../src/adapters/MorphoAdapter.sol";
+import {RebalancerDelegation} from "../src/RebalancerDelegation.sol";
 
 contract DeployScript is Script {
     AccessControl public accessControl;
@@ -27,6 +28,8 @@ contract DeployScript is Script {
     MorphoAdapter public morphoAdapter;
     CompoundAdapter public compoundAdapter;
 
+    RebalancerDelegation public rebalancer;
+
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
@@ -41,6 +44,7 @@ contract DeployScript is Script {
         deployProtocols();
         deployAdapters();
         deployMarket();
+        deployRebalancer(deployer);
 
         vm.stopBroadcast();
 
@@ -50,6 +54,7 @@ contract DeployScript is Script {
         console.log("  AccessControl:        ", address(accessControl));
         console.log("  ProtocolSelector:     ", address(protocolSelector));
         console.log("  PredictionMarket:     ", address(market));
+        console.log("  RebalancerDelegation: ", address(rebalancer));
         console.log("");
         console.log("Mock Token:");
         console.log("  USDC:                 ", address(usdc));
@@ -162,5 +167,26 @@ contract DeployScript is Script {
 
         market = new WhizyPredictionMarket(address(accessControl), address(protocolSelector));
         console.log("   PredictionMarket:     ", address(market));
+    }
+
+    function deployRebalancer(address deployer) internal {
+        console.log("\n5. Deploying RebalancerDelegation...");
+
+        rebalancer = new RebalancerDelegation(
+            address(protocolSelector),
+            address(usdc)
+        );
+        console.log("   RebalancerDelegation: ", address(rebalancer));
+        console.log("   - Owner:               ", deployer);
+        console.log("   - Default Operator:    ", deployer);
+        console.log("");
+
+        // Add deployer as operator to prediction market for vault rebalancing
+        console.log("   Setting up operators...");
+        market.addOperator(deployer);
+        console.log("   [OK] Deployer added as market operator");
+        console.log("   - Can rebalance market vaults");
+        console.log("   - Can rebalance user deposits");
+        console.log("");
     }
 }
