@@ -81,16 +81,32 @@ contract UpdateAPYScript is Script {
         console.log("");
     }
 
-    function _formatApy(uint256 basisPoints) internal pure returns (string memory) {
+    function _formatApy(
+        uint256 basisPoints
+    ) internal pure returns (string memory) {
         uint256 wholePart = basisPoints / 100;
         uint256 decimalPart = basisPoints % 100;
 
         if (decimalPart == 0) {
             return string(abi.encodePacked(_uint2str(wholePart), ".0"));
         } else if (decimalPart < 10) {
-            return string(abi.encodePacked(_uint2str(wholePart), ".0", _uint2str(decimalPart)));
+            return
+                string(
+                    abi.encodePacked(
+                        _uint2str(wholePart),
+                        ".0",
+                        _uint2str(decimalPart)
+                    )
+                );
         } else {
-            return string(abi.encodePacked(_uint2str(wholePart), ".", _uint2str(decimalPart)));
+            return
+                string(
+                    abi.encodePacked(
+                        _uint2str(wholePart),
+                        ".",
+                        _uint2str(decimalPart)
+                    )
+                );
         }
     }
 
@@ -108,7 +124,7 @@ contract UpdateAPYScript is Script {
         uint256 k = len;
         while (_i != 0) {
             k = k - 1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
             bytes1 b1 = bytes1(temp);
             bstr[k] = b1;
             _i /= 10;

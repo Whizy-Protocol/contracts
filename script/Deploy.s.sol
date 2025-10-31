@@ -165,7 +165,10 @@ contract DeployScript is Script {
         console.log("   All 3 protocols registered successfully!");
         console.log("");
 
-        market = new WhizyPredictionMarket(address(accessControl), address(protocolSelector));
+        market = new WhizyPredictionMarket(
+            address(accessControl),
+            address(protocolSelector)
+        );
         console.log("   PredictionMarket:     ", address(market));
     }
 
@@ -181,7 +184,6 @@ contract DeployScript is Script {
         console.log("   - Default Operator:    ", deployer);
         console.log("");
 
-        // Add deployer as operator to prediction market for vault rebalancing
         console.log("   Setting up operators...");
         market.addOperator(deployer);
         console.log("   [OK] Deployer added as market operator");

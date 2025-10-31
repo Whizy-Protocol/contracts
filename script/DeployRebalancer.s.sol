@@ -5,10 +5,11 @@ import {Script, console} from "forge-std/Script.sol";
 import {RebalancerDelegation} from "../src/RebalancerDelegation.sol";
 
 contract DeployRebalancer is Script {
-    // Deployed contract addresses from previous deployment
-    address constant PROTOCOL_SELECTOR = 0x0371aB2d90A436C8E5c5B6aF8835F46A6Ce884Ba;
+    address constant PROTOCOL_SELECTOR =
+        0x0371aB2d90A436C8E5c5B6aF8835F46A6Ce884Ba;
     address constant USDC = 0x8bc6E87bE188B7964E48f37d7A2c144416a995eE;
-    address constant ACCESS_CONTROL = 0x62013Ec34fe3A074AC5cA5fCeDc0EFa646A5445B;
+    address constant ACCESS_CONTROL =
+        0x62013Ec34fe3A074AC5cA5fCeDc0EFa646A5445B;
 
     RebalancerDelegation public rebalancer;
 
