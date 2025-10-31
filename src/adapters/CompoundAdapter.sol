@@ -23,8 +23,16 @@ contract CompoundAdapter is IYieldProtocol {
     mapping(address => uint256) public totalStakeTime;
 
     event AdapterInitialized(address indexed fork, address indexed owner);
-    event DepositRouted(address indexed user, address indexed token, uint256 amount);
-    event WithdrawalRouted(address indexed user, address indexed token, uint256 amount);
+    event DepositRouted(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
+    event WithdrawalRouted(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
     event BonusYieldEarned(address indexed user, uint256 bonusAmount);
     event StakeTimeUpdated(address indexed user, uint256 totalTime);
 
@@ -41,7 +49,10 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Initialize the adapter
      */
-    function initialize(uint256 initialApy, uint256 protocolFee) external override onlyOwner {
+    function initialize(
+        uint256 initialApy,
+        uint256 protocolFee
+    ) external override onlyOwner {
         require(!initialized, "Already initialized");
 
         COMPOUND_FORK.initialize(initialApy, protocolFee);
@@ -52,7 +63,10 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Route deposit to Compound fork with time tracking
      */
-    function deposit(IERC20 token, uint256 amount) external override returns (bool success) {
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (bool success) {
         require(amount > 0, "Invalid amount");
 
         if (userFirstDepositTime[msg.sender][address(token)] == 0) {
@@ -77,10 +91,17 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Route withdrawal from Compound fork with bonus calculations
      */
-    function withdraw(IERC20 token, uint256 amount) external override returns (uint256 amountReceived) {
+    function withdraw(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
 
-        uint256 bonusYield = _calculateBonusYield(msg.sender, address(token), amount);
+        uint256 bonusYield = _calculateBonusYield(
+            msg.sender,
+            address(token),
+            amount
+        );
 
         amountReceived = COMPOUND_FORK.withdraw(token, amount);
 
@@ -101,17 +122,27 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Get user's balance from the fork with bonus calculations
      */
-    function getBalance(address user, IERC20 token) external view override returns (uint256 balance) {
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 balance) {
         balance = COMPOUND_FORK.getBalance(user, token);
 
-        uint256 bonusYield = _calculateBonusYield(user, address(token), balance);
+        uint256 bonusYield = _calculateBonusYield(
+            user,
+            address(token),
+            balance
+        );
         balance += bonusYield;
     }
 
     /**
      * @dev Get user's shares from the fork
      */
-    function getShares(address user, IERC20 token) external view override returns (uint256 shares) {
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 shares) {
         shares = COMPOUND_FORK.getShares(user, token);
     }
 
@@ -125,21 +156,30 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Get protocol name with adapter suffix
      */
-    function getProtocolName() external pure override returns (string memory name) {
+    function getProtocolName()
+        external
+        pure
+        override
+        returns (string memory name)
+    {
         name = "Compound Adapter";
     }
 
     /**
      * @dev Get total value locked in the fork
      */
-    function getTotalTvl(IERC20 token) external view override returns (uint256 tvl) {
+    function getTotalTvl(
+        IERC20 token
+    ) external view override returns (uint256 tvl) {
         tvl = COMPOUND_FORK.getTotalTvl(token);
     }
 
     /**
      * @dev Get exchange rate from the fork
      */
-    function getExchangeRate(IERC20 token) external view override returns (uint256 rate) {
+    function getExchangeRate(
+        IERC20 token
+    ) external view override returns (uint256 rate) {
         rate = COMPOUND_FORK.getExchangeRate(token);
     }
 
@@ -148,23 +188,18 @@ contract CompoundAdapter is IYieldProtocol {
      */
     function isWhitelisted(
         address /* user */
-    )
-        external
-        pure
-        override
-        returns (bool)
-    {
+    ) external pure override returns (bool) {
         return true;
     }
 
     /**
      * @dev Calculate bonus yield based on stake duration
      */
-    function _calculateBonusYield(address user, address tokenAddress, uint256 amount)
-        internal
-        view
-        returns (uint256 bonusYield)
-    {
+    function _calculateBonusYield(
+        address user,
+        address tokenAddress,
+        uint256 amount
+    ) internal view returns (uint256 bonusYield) {
         uint256 firstDepositTime = userFirstDepositTime[user][tokenAddress];
         if (firstDepositTime == 0) return 0;
 
@@ -192,7 +227,10 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Get user's total stake time
      */
-    function getUserStakeTime(address user, address token) external view returns (uint256 stakeTime) {
+    function getUserStakeTime(
+        address user,
+        address token
+    ) external view returns (uint256 stakeTime) {
         uint256 firstDeposit = userFirstDepositTime[user][token];
         if (firstDeposit == 0) return 0;
         return block.timestamp - firstDeposit;
@@ -201,7 +239,11 @@ contract CompoundAdapter is IYieldProtocol {
     /**
      * @dev Get expected bonus yield for a user
      */
-    function getExpectedBonus(address user, address token, uint256 amount) external view returns (uint256 bonusYield) {
+    function getExpectedBonus(
+        address user,
+        address token,
+        uint256 amount
+    ) external view returns (uint256 bonusYield) {
         bonusYield = _calculateBonusYield(user, token, amount);
     }
 

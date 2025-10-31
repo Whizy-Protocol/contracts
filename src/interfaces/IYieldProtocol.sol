@@ -9,7 +9,11 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface IYieldProtocol {
     event Deposit(address indexed user, uint256 amount, uint256 sharesReceived);
-    event Withdrawal(address indexed user, uint256 shares, uint256 amountReceived);
+    event Withdrawal(
+        address indexed user,
+        uint256 shares,
+        uint256 amountReceived
+    );
 
     /**
      * @dev Initialize the protocol with initial parameters
@@ -24,7 +28,10 @@ interface IYieldProtocol {
      * @param amount Amount of tokens to deposit
      * @return success True if deposit was successful
      */
-    function deposit(IERC20 token, uint256 amount) external returns (bool success);
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external returns (bool success);
 
     /**
      * @dev Withdraw tokens from the yield protocol
@@ -32,7 +39,10 @@ interface IYieldProtocol {
      * @param shares Amount of shares to withdraw
      * @return amountReceived Amount of tokens received
      */
-    function withdraw(IERC20 token, uint256 shares) external returns (uint256 amountReceived);
+    function withdraw(
+        IERC20 token,
+        uint256 shares
+    ) external returns (uint256 amountReceived);
 
     /**
      * @dev Get user's balance in the protocol
@@ -40,7 +50,10 @@ interface IYieldProtocol {
      * @param token Token address
      * @return balance User's balance in underlying tokens
      */
-    function getBalance(address user, IERC20 token) external view returns (uint256 balance);
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view returns (uint256 balance);
 
     /**
      * @dev Get user's shares in the protocol
@@ -48,7 +61,10 @@ interface IYieldProtocol {
      * @param token Token address
      * @return shares User's shares
      */
-    function getShares(address user, IERC20 token) external view returns (uint256 shares);
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view returns (uint256 shares);
 
     /**
      * @dev Get current APY of the protocol
@@ -81,5 +97,7 @@ interface IYieldProtocol {
      * @param user User address
      * @return isWhitelisted True if user is whitelisted
      */
-    function isWhitelisted(address user) external view returns (bool isWhitelisted);
+    function isWhitelisted(
+        address user
+    ) external view returns (bool isWhitelisted);
 }

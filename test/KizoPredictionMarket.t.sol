@@ -41,7 +41,10 @@ contract WhizyPredictionMarketTest is Test {
         protocolSelector = new ProtocolSelector(200, 5);
         protocolSelector.registerProtocol(1, address(aaveAdapter), 3);
 
-        market = new WhizyPredictionMarket(address(accessControl), address(protocolSelector));
+        market = new WhizyPredictionMarket(
+            address(accessControl),
+            address(protocolSelector)
+        );
 
         usdc.mint(alice, USER_BALANCE);
         usdc.mint(bob, USER_BALANCE);
@@ -51,9 +54,24 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_CreateMarket() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
-        (uint256 id, string memory question,, address token, MarketVault vault,,,,,) = market.markets(marketId);
+        (
+            uint256 id,
+            string memory question,
+            ,
+            address token,
+            MarketVault vault,
+            ,
+            ,
+            ,
+            ,
+
+        ) = market.markets(marketId);
 
         assertEq(id, 0);
         assertEq(question, "Will ETH reach $5000?");
@@ -63,7 +81,11 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_PlaceBet() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         uint256 betAmount = 1000 * 1e6;
         vm.startPrank(alice);
@@ -71,7 +93,10 @@ contract WhizyPredictionMarketTest is Test {
         market.placeBet(marketId, true, betAmount);
         vm.stopPrank();
 
-        (uint256 yesShares, uint256 noShares, bool claimed) = market.positions(marketId, alice);
+        (uint256 yesShares, uint256 noShares, bool claimed) = market.positions(
+            marketId,
+            alice
+        );
 
         assertTrue(yesShares > 0, "Alice should have YES shares");
         assertEq(noShares, 0, "Alice should have no NO shares");
@@ -82,7 +107,11 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_PlaceBetBothSides() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         uint256 aliceBet = 1000 * 1e6;
         vm.startPrank(alice);
@@ -96,8 +125,8 @@ contract WhizyPredictionMarketTest is Test {
         market.placeBet(marketId, false, bobBet);
         vm.stopPrank();
 
-        (uint256 aliceYes,,) = market.positions(marketId, alice);
-        (, uint256 bobNo,) = market.positions(marketId, bob);
+        (uint256 aliceYes, , ) = market.positions(marketId, alice);
+        (, uint256 bobNo, ) = market.positions(marketId, bob);
 
         assertTrue(aliceYes > 0);
         assertTrue(bobNo > 0);
@@ -105,7 +134,11 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_ResolveMarket() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -117,14 +150,20 @@ contract WhizyPredictionMarketTest is Test {
         vm.prank(owner);
         market.resolveMarket(marketId, true);
 
-        (,,,,,,, bool resolved, bool outcome,) = market.markets(marketId);
+        (, , , , , , , bool resolved, bool outcome, ) = market.markets(
+            marketId
+        );
         assertTrue(resolved);
         assertTrue(outcome);
     }
 
     function test_ClaimWinnings() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -147,9 +186,12 @@ contract WhizyPredictionMarketTest is Test {
 
         uint256 aliceBalanceAfter = usdc.balanceOf(alice);
 
-        assertTrue(aliceBalanceAfter > aliceBalanceBefore, "Alice should profit");
+        assertTrue(
+            aliceBalanceAfter > aliceBalanceBefore,
+            "Alice should profit"
+        );
 
-        (,, bool claimed) = market.positions(marketId, alice);
+        (, , bool claimed) = market.positions(marketId, alice);
         assertTrue(claimed);
     }
 
@@ -157,9 +199,13 @@ contract WhizyPredictionMarketTest is Test {
         console.log("\n=== YIELD ACCRUAL TEST ===\n");
 
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 365 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 365 days,
+            address(usdc)
+        );
 
-        (,,,, MarketVault vault,,,,,) = market.markets(marketId);
+        (, , , , MarketVault vault, , , , , ) = market.markets(marketId);
 
         uint256 aliceBet = 1000 * 1e6;
         uint256 bobBet = 2000 * 1e6;
@@ -192,14 +238,21 @@ contract WhizyPredictionMarketTest is Test {
         console.log("Yield earned:", yieldEarned);
 
         assertTrue(yieldEarned > 0, "Should have earned yield");
-        assertTrue(totalAssetsAfter > totalAssetsInitial, "Assets should have grown");
+        assertTrue(
+            totalAssetsAfter > totalAssetsInitial,
+            "Assets should have grown"
+        );
     }
 
     function test_WinnerGetsYield() public {
         console.log("\n=== WINNER GETS YIELD TEST ===\n");
 
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 365 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 365 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -216,7 +269,7 @@ contract WhizyPredictionMarketTest is Test {
         vm.warp(block.timestamp + 30 days);
         aaveFork.accrueYield(usdc);
 
-        (,,,, MarketVault vault,,,,,) = market.markets(marketId);
+        (, , , , MarketVault vault, , , , , ) = market.markets(marketId);
         uint256 yieldBeforeClaim = vault.getCurrentYield();
 
         console.log("Yield before resolution:", yieldBeforeClaim);
@@ -237,7 +290,10 @@ contract WhizyPredictionMarketTest is Test {
         console.log("Alice balance after:", aliceBalanceAfter);
         console.log("Alice profit:", aliceProfit);
 
-        assertTrue(aliceProfit >= 2000 * 1e6, "Alice should get at least 2000 USDC");
+        assertTrue(
+            aliceProfit >= 2000 * 1e6,
+            "Alice should get at least 2000 USDC"
+        );
         assertTrue(aliceProfit > 2000 * 1e6, "Alice should profit from yield");
     }
 
@@ -245,7 +301,11 @@ contract WhizyPredictionMarketTest is Test {
         console.log("\n=== LOSER GETS YIELD TEST ===\n");
 
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 365 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 365 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -262,7 +322,7 @@ contract WhizyPredictionMarketTest is Test {
         vm.warp(block.timestamp + 365 days);
         aaveFork.accrueYield(usdc);
 
-        (,,,, MarketVault vault,,,,,) = market.markets(marketId);
+        (, , , , MarketVault vault, , , , , ) = market.markets(marketId);
         uint256 yieldBeforeClaim = vault.getCurrentYield();
         console.log("Total yield accrued:", yieldBeforeClaim);
 
@@ -281,12 +341,19 @@ contract WhizyPredictionMarketTest is Test {
         console.log("Bob payout (yield only):", bobPayout);
 
         assertTrue(bobPayout > 0, "Loser should get yield");
-        assertTrue(bobPayout < 1980 * 1e6, "Loser should only get yield, not principal");
+        assertTrue(
+            bobPayout < 1980 * 1e6,
+            "Loser should only get yield, not principal"
+        );
     }
 
     function test_GetPotentialPayout() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -298,8 +365,11 @@ contract WhizyPredictionMarketTest is Test {
         market.placeBet(marketId, false, 2000 * 1e6);
         vm.stopPrank();
 
-        (uint256 yesPayoutIfWin, uint256 noPayoutIfWin, uint256 currentYield) =
-            market.getPotentialPayout(marketId, alice);
+        (
+            uint256 yesPayoutIfWin,
+            uint256 noPayoutIfWin,
+            uint256 currentYield
+        ) = market.getPotentialPayout(marketId, alice);
 
         console.log("Alice YES payout if win:", yesPayoutIfWin);
         console.log("Alice NO payout if win:", noPayoutIfWin);
@@ -311,7 +381,11 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_CannotClaimTwice() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -332,7 +406,11 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_CannotBetAfterEnd() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         vm.warp(block.timestamp + 31 days);
 
@@ -345,7 +423,11 @@ contract WhizyPredictionMarketTest is Test {
 
     function test_CannotResolveBeforeEnd() public {
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will ETH reach $5000?", block.timestamp + 30 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will ETH reach $5000?",
+            block.timestamp + 30 days,
+            address(usdc)
+        );
 
         vm.prank(owner);
         vm.expectRevert("Market not ended");
@@ -374,7 +456,11 @@ contract WhizyPredictionMarketTest is Test {
         console.log("ProtocolSelector will choose based on score formula");
 
         vm.prank(owner);
-        uint256 marketId = market.createMarket("Will BTC reach $100k?", block.timestamp + 365 days, address(usdc));
+        uint256 marketId = market.createMarket(
+            "Will BTC reach $100k?",
+            block.timestamp + 365 days,
+            address(usdc)
+        );
 
         vm.startPrank(alice);
         usdc.approve(address(market), 1000 * 1e6);
@@ -392,7 +478,7 @@ contract WhizyPredictionMarketTest is Test {
         aaveFork.accrueYield(usdc);
         morphoFork.accrueYield(address(usdc));
 
-        (,,,, MarketVault vault,,,,,) = market.markets(marketId);
+        (, , , , MarketVault vault, , , , , ) = market.markets(marketId);
         uint256 yieldFinal = vault.getCurrentYield();
         console.log("\nTotal yield after 365 days:", yieldFinal);
 
@@ -412,20 +498,40 @@ contract WhizyPredictionMarketTest is Test {
         uint256 bobPayout = usdc.balanceOf(bob) - bobBalanceBefore;
 
         console.log("\nPayouts:");
-        console.log("  Alice (winner):", alicePayout, "USDC (her principal + yield + Bob's principal)");
+        console.log(
+            "  Alice (winner):",
+            alicePayout,
+            "USDC (her principal + yield + Bob's principal)"
+        );
         console.log("  Bob (loser):", bobPayout, "USDC (yield only)");
 
-        assertTrue(alicePayout >= 2000 * 1e6, "Alice should get at least 2000 USDC");
-        assertTrue(alicePayout < 2970 * 1e6, "Alice gets less than full 2970 since Bob keeps yield");
+        assertTrue(
+            alicePayout >= 2000 * 1e6,
+            "Alice should get at least 2000 USDC"
+        );
+        assertTrue(
+            alicePayout < 2970 * 1e6,
+            "Alice gets less than full 2970 since Bob keeps yield"
+        );
 
         assertTrue(bobPayout > 0, "Bob should get some yield");
-        assertTrue(bobPayout < 1980 * 1e6, "Bob should only get yield, not principal");
+        assertTrue(
+            bobPayout < 1980 * 1e6,
+            "Bob should only get yield, not principal"
+        );
 
-        assertTrue(yieldFinal > 0, "Yield should have accrued in selected protocol");
+        assertTrue(
+            yieldFinal > 0,
+            "Yield should have accrued in selected protocol"
+        );
 
         uint256 totalPaid = alicePayout + bobPayout;
         console.log("\nTotal paid out:", totalPaid, "USDC");
-        console.log("Expected (2970 + yield):", 2970 * 1e6 + yieldFinal, "USDC");
+        console.log(
+            "Expected (2970 + yield):",
+            2970 * 1e6 + yieldFinal,
+            "USDC"
+        );
 
         console.log("\n[PASS] Multi-protocol system working correctly");
     }

@@ -20,8 +20,16 @@ contract AaveAdapter is IYieldProtocol {
     bool private initialized;
 
     event AdapterInitialized(address indexed fork, address indexed owner);
-    event DepositRouted(address indexed user, address indexed token, uint256 amount);
-    event WithdrawalRouted(address indexed user, address indexed token, uint256 amount);
+    event DepositRouted(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
+    event WithdrawalRouted(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
 
     constructor(address _aaveFork) {
         AAVE_FORK = AaveFork(_aaveFork);
@@ -36,7 +44,10 @@ contract AaveAdapter is IYieldProtocol {
     /**
      * @dev Initialize the adapter
      */
-    function initialize(uint256 initialApy, uint256 protocolFee) external override onlyOwner {
+    function initialize(
+        uint256 initialApy,
+        uint256 protocolFee
+    ) external override onlyOwner {
         require(!initialized, "Already initialized");
 
         AAVE_FORK.initialize(initialApy, protocolFee);
@@ -47,7 +58,10 @@ contract AaveAdapter is IYieldProtocol {
     /**
      * @dev Route deposit to Aave fork
      */
-    function deposit(IERC20 token, uint256 amount) external override returns (bool success) {
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (bool success) {
         require(amount > 0, "Invalid amount");
 
         token.safeTransferFrom(msg.sender, address(this), amount);
@@ -67,7 +81,10 @@ contract AaveAdapter is IYieldProtocol {
     /**
      * @dev Route withdrawal from Aave fork
      */
-    function withdraw(IERC20 token, uint256 amount) external override returns (uint256 amountReceived) {
+    function withdraw(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
 
         amountReceived = AAVE_FORK.withdraw(token, amount);
@@ -82,14 +99,20 @@ contract AaveAdapter is IYieldProtocol {
     /**
      * @dev Get user's balance from the fork
      */
-    function getBalance(address user, IERC20 token) external view override returns (uint256 balance) {
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 balance) {
         balance = AAVE_FORK.getBalance(user, token);
     }
 
     /**
      * @dev Get user's shares from the fork
      */
-    function getShares(address user, IERC20 token) external view override returns (uint256 shares) {
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 shares) {
         shares = AAVE_FORK.getShares(user, token);
     }
 
@@ -103,21 +126,30 @@ contract AaveAdapter is IYieldProtocol {
     /**
      * @dev Get protocol name with adapter suffix
      */
-    function getProtocolName() external pure override returns (string memory name) {
+    function getProtocolName()
+        external
+        pure
+        override
+        returns (string memory name)
+    {
         name = "Aave Adapter";
     }
 
     /**
      * @dev Get total value locked in the fork
      */
-    function getTotalTvl(IERC20 token) external view override returns (uint256 tvl) {
+    function getTotalTvl(
+        IERC20 token
+    ) external view override returns (uint256 tvl) {
         tvl = AAVE_FORK.getTotalTvl(token);
     }
 
     /**
      * @dev Get exchange rate from the fork
      */
-    function getExchangeRate(IERC20 token) external view override returns (uint256 rate) {
+    function getExchangeRate(
+        IERC20 token
+    ) external view override returns (uint256 rate) {
         rate = AAVE_FORK.getExchangeRate(token);
     }
 

@@ -55,7 +55,8 @@ contract CompoundFork is IYieldProtocol {
         }
 
         uint256 principal = totalDeposited[tokenAddress];
-        uint256 yieldAmount = (principal * baseApy * timeElapsed) / (365 days * 10000);
+        uint256 yieldAmount = (principal * baseApy * timeElapsed) /
+            (365 days * 10000);
 
         if (yieldAmount > 0) {
             try USDC(tokenAddress).mint(address(this), yieldAmount) {
@@ -76,7 +77,10 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Initialize the protocol
      */
-    function initialize(uint256 initialApy, uint256 _protocolFee) external override onlyOwner {
+    function initialize(
+        uint256 initialApy,
+        uint256 _protocolFee
+    ) external override onlyOwner {
         require(!initialized, "Already initialized");
         baseApy = initialApy;
         protocolFee = _protocolFee;
@@ -86,7 +90,10 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Deposit tokens
      */
-    function deposit(IERC20 token, uint256 amount) external override returns (bool success) {
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (bool success) {
         require(amount > 0, "Invalid amount");
 
         _accrueYield(address(token));
@@ -104,13 +111,20 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Withdraw tokens
      */
-    function withdraw(IERC20 token, uint256 amount) external override returns (uint256 amountReceived) {
+    function withdraw(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
-        require(userBalances[msg.sender][address(token)] >= amount, "Insufficient balance");
+        require(
+            userBalances[msg.sender][address(token)] >= amount,
+            "Insufficient balance"
+        );
 
         _accrueYield(address(token));
 
-        uint256 stakeDuration = block.timestamp - userDepositTime[msg.sender][address(token)];
+        uint256 stakeDuration = block.timestamp -
+            userDepositTime[msg.sender][address(token)];
         uint256 yield = _calculateYield(amount, stakeDuration);
 
         amountReceived = amount + yield;
@@ -133,10 +147,14 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Get user's balance including accrued yield
      */
-    function getBalance(address user, IERC20 token) external view override returns (uint256 balance) {
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 balance) {
         uint256 principal = userBalances[user][address(token)];
         if (principal > 0) {
-            uint256 stakeDuration = block.timestamp - userDepositTime[user][address(token)];
+            uint256 stakeDuration = block.timestamp -
+                userDepositTime[user][address(token)];
             uint256 yield = _calculateYield(principal, stakeDuration);
             balance = principal + yield;
         }
@@ -145,7 +163,10 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Get user's shares (for Compound, shares = principal)
      */
-    function getShares(address user, IERC20 token) external view override returns (uint256 shares) {
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 shares) {
         shares = userBalances[user][address(token)];
     }
 
@@ -166,21 +187,30 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Get protocol name
      */
-    function getProtocolName() external pure override returns (string memory name) {
+    function getProtocolName()
+        external
+        pure
+        override
+        returns (string memory name)
+    {
         name = "Compound Fork";
     }
 
     /**
      * @dev Get total value locked
      */
-    function getTotalTvl(IERC20 token) external view override returns (uint256 tvl) {
+    function getTotalTvl(
+        IERC20 token
+    ) external view override returns (uint256 tvl) {
         tvl = token.balanceOf(address(this));
     }
 
     /**
      * @dev Get exchange rate (varies based on accumulated yield)
      */
-    function getExchangeRate(IERC20 token) external view override returns (uint256 rate) {
+    function getExchangeRate(
+        IERC20 token
+    ) external view override returns (uint256 rate) {
         uint256 totalSupply = totalDeposited[address(token)];
         uint256 totalAssets = token.balanceOf(address(this));
 
@@ -201,7 +231,10 @@ contract CompoundFork is IYieldProtocol {
     /**
      * @dev Calculate yield based on amount and duration
      */
-    function _calculateYield(uint256 amount, uint256 duration) internal view returns (uint256 yield) {
+    function _calculateYield(
+        uint256 amount,
+        uint256 duration
+    ) internal view returns (uint256 yield) {
         uint256 annualYield = (amount * baseApy) / 10000;
         yield = (annualYield * duration) / 365 days;
 

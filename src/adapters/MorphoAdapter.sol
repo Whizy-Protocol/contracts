@@ -23,8 +23,16 @@ contract MorphoAdapter is IYieldProtocol {
     event AdapterInitialized(address indexed fork, address indexed owner);
     event CallerAuthorized(address indexed caller);
     event CallerRevoked(address indexed caller);
-    event DepositRouted(address indexed user, address indexed token, uint256 amount);
-    event WithdrawalRouted(address indexed user, address indexed token, uint256 amount);
+    event DepositRouted(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
+    event WithdrawalRouted(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
 
     constructor(address _morphoFork) {
         MORPHO_FORK = MorphoFork(_morphoFork);
@@ -45,7 +53,10 @@ contract MorphoAdapter is IYieldProtocol {
     /**
      * @dev Initialize the adapter
      */
-    function initialize(uint256 initialApy, uint256 protocolFee) external override onlyOwner {
+    function initialize(
+        uint256 initialApy,
+        uint256 protocolFee
+    ) external override onlyOwner {
         require(!initialized, "Already initialized");
 
         MORPHO_FORK.initialize(initialApy, protocolFee);
@@ -56,7 +67,10 @@ contract MorphoAdapter is IYieldProtocol {
     /**
      * @dev Route deposit to Morpho fork (with whitelisting check)
      */
-    function deposit(IERC20 token, uint256 amount) external override onlyAuthorized returns (bool success) {
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external override onlyAuthorized returns (bool success) {
         require(amount > 0, "Invalid amount");
 
         if (!MORPHO_FORK.isWhitelisted(address(this))) {
@@ -80,7 +94,10 @@ contract MorphoAdapter is IYieldProtocol {
     /**
      * @dev Route withdrawal from Morpho fork
      */
-    function withdraw(IERC20 token, uint256 amount) external override onlyAuthorized returns (uint256 amountReceived) {
+    function withdraw(
+        IERC20 token,
+        uint256 amount
+    ) external override onlyAuthorized returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
 
         amountReceived = MORPHO_FORK.withdraw(token, amount);
@@ -96,7 +113,10 @@ contract MorphoAdapter is IYieldProtocol {
      * @dev Get user's balance from the fork
      * When queried for the adapter itself, return the adapter's balance in the fork
      */
-    function getBalance(address user, IERC20 token) external view override returns (uint256 balance) {
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 balance) {
         if (user == address(this)) {
             balance = MORPHO_FORK.getBalance(address(this), token);
         } else {
@@ -108,7 +128,10 @@ contract MorphoAdapter is IYieldProtocol {
      * @dev Get user's shares from the fork
      * When queried for the adapter itself, return the adapter's shares in the fork
      */
-    function getShares(address user, IERC20 token) external view override returns (uint256 shares) {
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 shares) {
         if (user == address(this)) {
             shares = MORPHO_FORK.getShares(address(this), token);
         } else {
@@ -126,21 +149,30 @@ contract MorphoAdapter is IYieldProtocol {
     /**
      * @dev Get protocol name with adapter suffix
      */
-    function getProtocolName() external pure override returns (string memory name) {
+    function getProtocolName()
+        external
+        pure
+        override
+        returns (string memory name)
+    {
         name = "Morpho Adapter";
     }
 
     /**
      * @dev Get total value locked in the fork
      */
-    function getTotalTvl(IERC20 token) external view override returns (uint256 tvl) {
+    function getTotalTvl(
+        IERC20 token
+    ) external view override returns (uint256 tvl) {
         tvl = MORPHO_FORK.getTotalTvl(token);
     }
 
     /**
      * @dev Get exchange rate from the fork
      */
-    function getExchangeRate(IERC20 token) external view override returns (uint256 rate) {
+    function getExchangeRate(
+        IERC20 token
+    ) external view override returns (uint256 rate) {
         rate = MORPHO_FORK.getExchangeRate(token);
     }
 
@@ -148,7 +180,8 @@ contract MorphoAdapter is IYieldProtocol {
      * @dev Check if user is whitelisted through this adapter
      */
     function isWhitelisted(address user) external view override returns (bool) {
-        return authorizedCallers[user] && MORPHO_FORK.isWhitelisted(address(this));
+        return
+            authorizedCallers[user] && MORPHO_FORK.isWhitelisted(address(this));
     }
 
     /**

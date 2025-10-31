@@ -17,10 +17,29 @@ contract ProtocolSelector is AccessControl {
     uint8 public constant PROTOCOL_MORPHO = 2;
     uint8 public constant PROTOCOL_COMPOUND = 3;
 
-    event ProtocolRegistered(uint8 indexed protocolType, address indexed protocolAddress, string name, uint8 riskLevel);
-    event ProtocolUpdated(address indexed protocolAddress, uint256 newApy, uint256 newTvl);
-    event AutoDepositExecuted(address indexed user, address indexed protocol, uint256 amount, bool success);
-    event AutoWithdrawExecuted(address indexed user, address indexed protocol, uint256 amount, bool success);
+    event ProtocolRegistered(
+        uint8 indexed protocolType,
+        address indexed protocolAddress,
+        string name,
+        uint8 riskLevel
+    );
+    event ProtocolUpdated(
+        address indexed protocolAddress,
+        uint256 newApy,
+        uint256 newTvl
+    );
+    event AutoDepositExecuted(
+        address indexed user,
+        address indexed protocol,
+        uint256 amount,
+        bool success
+    );
+    event AutoWithdrawExecuted(
+        address indexed user,
+        address indexed protocol,
+        uint256 amount,
+        bool success
+    );
 
     struct ProtocolInfo {
         uint8 protocolType;
@@ -70,9 +89,16 @@ contract ProtocolSelector is AccessControl {
      * @param protocolAddress Address of the protocol contract
      * @param riskLevel Risk level (1=lowest, 10=highest)
      */
-    function registerProtocol(uint8 protocolType, address protocolAddress, uint8 riskLevel) external onlyOwner {
+    function registerProtocol(
+        uint8 protocolType,
+        address protocolAddress,
+        uint8 riskLevel
+    ) external onlyOwner {
         require(protocolAddress != address(0), "Invalid protocol address");
-        require(protocolType >= 1 && protocolType <= 3, "Invalid protocol type");
+        require(
+            protocolType >= 1 && protocolType <= 3,
+            "Invalid protocol type"
+        );
         require(riskLevel >= 1 && riskLevel <= 10, "Invalid risk level");
 
         IYieldProtocol protocol = IYieldProtocol(protocolAddress);
@@ -90,7 +116,12 @@ contract ProtocolSelector is AccessControl {
         availableProtocols.push(protocolInfo);
         protocolTypeToAddress[protocolType] = protocolAddress;
 
-        emit ProtocolRegistered(protocolType, protocolAddress, protocolInfo.name, riskLevel);
+        emit ProtocolRegistered(
+            protocolType,
+            protocolAddress,
+            protocolInfo.name,
+            riskLevel
+        );
     }
 
     /**
@@ -100,11 +131,7 @@ contract ProtocolSelector is AccessControl {
      */
     function selectBestProtocol(
         IERC20 /* token */
-    )
-        external
-        view
-        returns (ProtocolInfo memory bestProtocol)
-    {
+    ) external view returns (ProtocolInfo memory bestProtocol) {
         if (availableProtocols.length == 0) revert NoProtocolsAvailable();
 
         int256 bestScore = type(int256).min;
@@ -112,7 +139,10 @@ contract ProtocolSelector is AccessControl {
         uint256 maxTvl = 0;
 
         for (uint256 i = 0; i < availableProtocols.length; i++) {
-            if (availableProtocols[i].active && availableProtocols[i].tvl > maxTvl) {
+            if (
+                availableProtocols[i].active &&
+                availableProtocols[i].tvl > maxTvl
+            ) {
                 maxTvl = availableProtocols[i].tvl;
             }
         }
@@ -151,7 +181,10 @@ contract ProtocolSelector is AccessControl {
      * @return success True if deposit was successful
      * @return reason Reason for success/failure
      */
-    function autoDeposit(IERC20 token, uint256 amount) external returns (bool success, string memory reason) {
+    function autoDeposit(
+        IERC20 token,
+        uint256 amount
+    ) external returns (bool success, string memory reason) {
         require(amount > 0, "Invalid amount");
 
         ProtocolInfo memory bestProtocol = this.selectBestProtocol(token);
@@ -160,7 +193,9 @@ contract ProtocolSelector is AccessControl {
 
         token.safeIncreaseAllowance(bestProtocol.protocolAddress, amount);
 
-        try IYieldProtocol(bestProtocol.protocolAddress).deposit(token, amount) returns (bool depositSuccess) {
+        try
+            IYieldProtocol(bestProtocol.protocolAddress).deposit(token, amount)
+        returns (bool depositSuccess) {
             success = depositSuccess;
             if (depositSuccess) {
                 userDeposits[msg.sender][token] += amount;
@@ -175,7 +210,12 @@ contract ProtocolSelector is AccessControl {
             reason = "Protocol deposit reverted";
         }
 
-        emit AutoDepositExecuted(msg.sender, bestProtocol.protocolAddress, amount, success);
+        emit AutoDepositExecuted(
+            msg.sender,
+            bestProtocol.protocolAddress,
+            amount,
+            success
+        );
     }
 
     /**
@@ -184,22 +224,37 @@ contract ProtocolSelector is AccessControl {
      * @param amount Amount to withdraw
      * @return amountReceived Amount actually received
      */
-    function autoWithdraw(IERC20 token, uint256 amount) external returns (uint256 amountReceived) {
+    function autoWithdraw(
+        IERC20 token,
+        uint256 amount
+    ) external returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
 
         uint256 balanceBefore = token.balanceOf(address(this));
 
-        for (uint256 i = 0; i < availableProtocols.length && amountReceived < amount; i++) {
+        for (
+            uint256 i = 0;
+            i < availableProtocols.length && amountReceived < amount;
+            i++
+        ) {
             ProtocolInfo memory protocol = availableProtocols[i];
 
             if (!protocol.active) continue;
 
-            IYieldProtocol protocolContract = IYieldProtocol(protocol.protocolAddress);
+            IYieldProtocol protocolContract = IYieldProtocol(
+                protocol.protocolAddress
+            );
 
-            uint256 protocolBalance = protocolContract.getBalance(address(protocolContract), token);
+            uint256 protocolBalance = protocolContract.getBalance(
+                address(protocolContract),
+                token
+            );
 
             if (protocolBalance == 0) {
-                protocolBalance = protocolContract.getBalance(address(this), token);
+                protocolBalance = protocolContract.getBalance(
+                    address(this),
+                    token
+                );
             }
 
             if (protocolBalance == 0) continue;
@@ -209,17 +264,23 @@ contract ProtocolSelector is AccessControl {
                 toWithdraw = protocolBalance;
             }
 
-            uint256 totalSharesAvailable = protocolContract.getShares(address(protocolContract), token);
+            uint256 totalSharesAvailable = protocolContract.getShares(
+                address(protocolContract),
+                token
+            );
 
             if (totalSharesAvailable == 0) {
-                totalSharesAvailable = protocolContract.getShares(address(this), token);
+                totalSharesAvailable = protocolContract.getShares(
+                    address(this),
+                    token
+                );
             }
 
             if (totalSharesAvailable == 0) continue;
 
             uint256 sharesToWithdraw;
 
-            if (toWithdraw >= protocolBalance * 95 / 100) {
+            if (toWithdraw >= (protocolBalance * 95) / 100) {
                 sharesToWithdraw = totalSharesAvailable;
             } else if (totalSharesAvailable > toWithdraw) {
                 sharesToWithdraw = toWithdraw;
@@ -227,11 +288,23 @@ contract ProtocolSelector is AccessControl {
                 sharesToWithdraw = totalSharesAvailable;
             }
 
-            try protocolContract.withdraw(token, sharesToWithdraw) returns (uint256 received) {
+            try protocolContract.withdraw(token, sharesToWithdraw) returns (
+                uint256 received
+            ) {
                 amountReceived += received;
-                emit AutoWithdrawExecuted(msg.sender, protocol.protocolAddress, received, true);
+                emit AutoWithdrawExecuted(
+                    msg.sender,
+                    protocol.protocolAddress,
+                    received,
+                    true
+                );
             } catch {
-                emit AutoWithdrawExecuted(msg.sender, protocol.protocolAddress, 0, false);
+                emit AutoWithdrawExecuted(
+                    msg.sender,
+                    protocol.protocolAddress,
+                    0,
+                    false
+                );
             }
         }
 
@@ -240,8 +313,9 @@ contract ProtocolSelector is AccessControl {
 
         if (actualReceived == 0) revert InsufficientBalance();
 
-        uint256 toDeduct =
-            actualReceived > userDeposits[msg.sender][token] ? userDeposits[msg.sender][token] : actualReceived;
+        uint256 toDeduct = actualReceived > userDeposits[msg.sender][token]
+            ? userDeposits[msg.sender][token]
+            : actualReceived;
         userDeposits[msg.sender][token] -= toDeduct;
         token.safeTransfer(msg.sender, actualReceived);
 
@@ -254,16 +328,24 @@ contract ProtocolSelector is AccessControl {
      * @param token The ERC20 token
      * @return totalBalance Total balance across all protocols
      */
-    function getTotalBalance(address user, IERC20 token) external view returns (uint256 totalBalance) {
+    function getTotalBalance(
+        address user,
+        IERC20 token
+    ) external view returns (uint256 totalBalance) {
         if (user == address(this)) {
             for (uint256 i = 0; i < availableProtocols.length; i++) {
                 ProtocolInfo memory protocol = availableProtocols[i];
 
                 if (!protocol.active) continue;
 
-                IYieldProtocol protocolContract = IYieldProtocol(protocol.protocolAddress);
+                IYieldProtocol protocolContract = IYieldProtocol(
+                    protocol.protocolAddress
+                );
 
-                uint256 balance = protocolContract.getBalance(protocol.protocolAddress, token);
+                uint256 balance = protocolContract.getBalance(
+                    protocol.protocolAddress,
+                    token
+                );
                 totalBalance += balance;
             }
         } else {
@@ -272,7 +354,9 @@ contract ProtocolSelector is AccessControl {
 
                 if (!protocol.active) continue;
 
-                IYieldProtocol protocolContract = IYieldProtocol(protocol.protocolAddress);
+                IYieldProtocol protocolContract = IYieldProtocol(
+                    protocol.protocolAddress
+                );
                 uint256 balance = protocolContract.getBalance(user, token);
                 totalBalance += balance;
             }
@@ -285,7 +369,10 @@ contract ProtocolSelector is AccessControl {
      * @param token The ERC20 token
      * @return deposit Amount user has deposited
      */
-    function getUserDeposit(address user, IERC20 token) external view returns (uint256 deposit) {
+    function getUserDeposit(
+        address user,
+        IERC20 token
+    ) external view returns (uint256 deposit) {
         deposit = userDeposits[user][token];
     }
 
@@ -301,7 +388,11 @@ contract ProtocolSelector is AccessControl {
                 availableProtocols[i].currentApy = protocol.getCurrentApy();
                 found = true;
 
-                emit ProtocolUpdated(protocolAddress, availableProtocols[i].currentApy, availableProtocols[i].tvl);
+                emit ProtocolUpdated(
+                    protocolAddress,
+                    availableProtocols[i].currentApy,
+                    availableProtocols[i].tvl
+                );
                 break;
             }
         }
@@ -316,10 +407,7 @@ contract ProtocolSelector is AccessControl {
     function updateProtocolInfo(
         address protocolAddress,
         IERC20 /* token */
-    )
-        external
-        onlyOwner
-    {
+    ) external onlyOwner {
         bool found = false;
         for (uint256 i = 0; i < availableProtocols.length; i++) {
             if (availableProtocols[i].protocolAddress == protocolAddress) {
@@ -327,7 +415,11 @@ contract ProtocolSelector is AccessControl {
                 availableProtocols[i].currentApy = protocol.getCurrentApy();
                 found = true;
 
-                emit ProtocolUpdated(protocolAddress, availableProtocols[i].currentApy, availableProtocols[i].tvl);
+                emit ProtocolUpdated(
+                    protocolAddress,
+                    availableProtocols[i].currentApy,
+                    availableProtocols[i].tvl
+                );
                 break;
             }
         }
@@ -340,7 +432,10 @@ contract ProtocolSelector is AccessControl {
      * @param protocolAddress Address of the protocol
      * @param active New active status
      */
-    function setProtocolActive(address protocolAddress, bool active) external onlyOwner {
+    function setProtocolActive(
+        address protocolAddress,
+        bool active
+    ) external onlyOwner {
         bool found = false;
         for (uint256 i = 0; i < availableProtocols.length; i++) {
             if (availableProtocols[i].protocolAddress == protocolAddress) {
@@ -382,7 +477,11 @@ contract ProtocolSelector is AccessControl {
      * @dev Get all available protocols
      * @return protocols Array of all protocols
      */
-    function getAvailableProtocols() external view returns (ProtocolInfo[] memory protocols) {
+    function getAvailableProtocols()
+        external
+        view
+        returns (ProtocolInfo[] memory protocols)
+    {
         protocols = availableProtocols;
     }
 
@@ -390,7 +489,11 @@ contract ProtocolSelector is AccessControl {
      * @dev Get all available protocols (alias)
      * @return protocols Array of all protocols
      */
-    function getAllProtocols() external view returns (ProtocolInfo[] memory protocols) {
+    function getAllProtocols()
+        external
+        view
+        returns (ProtocolInfo[] memory protocols)
+    {
         protocols = availableProtocols;
     }
 
@@ -399,7 +502,9 @@ contract ProtocolSelector is AccessControl {
      * @param protocolType Type of protocol
      * @return protocol Protocol information
      */
-    function getProtocolByType(uint8 protocolType) external view returns (ProtocolInfo memory protocol) {
+    function getProtocolByType(
+        uint8 protocolType
+    ) external view returns (ProtocolInfo memory protocol) {
         address protocolAddress = protocolTypeToAddress[protocolType];
         if (protocolAddress == address(0)) revert ProtocolNotFound();
 
@@ -418,7 +523,10 @@ contract ProtocolSelector is AccessControl {
      */
     function getCurrentBestApy() external view returns (uint256 bestApy) {
         for (uint256 i = 0; i < availableProtocols.length; i++) {
-            if (availableProtocols[i].active && availableProtocols[i].currentApy > bestApy) {
+            if (
+                availableProtocols[i].active &&
+                availableProtocols[i].currentApy > bestApy
+            ) {
                 bestApy = availableProtocols[i].currentApy;
             }
         }

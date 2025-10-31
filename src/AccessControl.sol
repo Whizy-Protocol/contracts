@@ -6,7 +6,10 @@ pragma solidity ^0.8.28;
  * @dev Contract that provides basic access control with owner and pausable functionality
  */
 contract AccessControl {
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
     event Paused(address account);
     event Unpaused(address account);
 

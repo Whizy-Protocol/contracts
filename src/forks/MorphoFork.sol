@@ -47,7 +47,8 @@ contract MorphoFork is IYieldProtocol {
         }
 
         uint256 principal = totalDeposited[tokenAddress];
-        uint256 yieldAmount = (principal * currentApy * timeElapsed) / (365 days * 10000);
+        uint256 yieldAmount = (principal * currentApy * timeElapsed) /
+            (365 days * 10000);
 
         if (yieldAmount > 0) {
             try USDC(tokenAddress).mint(address(this), yieldAmount) {} catch {}
@@ -76,7 +77,10 @@ contract MorphoFork is IYieldProtocol {
     /**
      * @dev Initialize the protocol
      */
-    function initialize(uint256 initialApy, uint256 _protocolFee) external override onlyOwner {
+    function initialize(
+        uint256 initialApy,
+        uint256 _protocolFee
+    ) external override onlyOwner {
         require(!initialized, "Already initialized");
         currentApy = initialApy;
         protocolFee = _protocolFee;
@@ -86,7 +90,10 @@ contract MorphoFork is IYieldProtocol {
     /**
      * @dev Deposit tokens (only whitelisted users)
      */
-    function deposit(IERC20 token, uint256 amount) external override onlyWhitelisted returns (bool success) {
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external override onlyWhitelisted returns (bool success) {
         require(amount > 0, "Invalid amount");
 
         _accrueYield(address(token));
@@ -103,9 +110,15 @@ contract MorphoFork is IYieldProtocol {
     /**
      * @dev Withdraw tokens (only whitelisted users)
      */
-    function withdraw(IERC20 token, uint256 amount) external override onlyWhitelisted returns (uint256 amountReceived) {
+    function withdraw(
+        IERC20 token,
+        uint256 amount
+    ) external override onlyWhitelisted returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
-        require(userBalances[msg.sender][address(token)] >= amount, "Insufficient balance");
+        require(
+            userBalances[msg.sender][address(token)] >= amount,
+            "Insufficient balance"
+        );
 
         _accrueYield(address(token));
 
@@ -141,7 +154,10 @@ contract MorphoFork is IYieldProtocol {
     /**
      * @dev Get user's balance (proportional share of total balance including yield)
      */
-    function getBalance(address user, IERC20 token) external view override returns (uint256 balance) {
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 balance) {
         uint256 userTracked = userBalances[user][address(token)];
         if (userTracked == 0) return 0;
 
@@ -158,7 +174,10 @@ contract MorphoFork is IYieldProtocol {
     /**
      * @dev Get user's shares (same as balance for Morpho)
      */
-    function getShares(address user, IERC20 token) external view override returns (uint256 shares) {
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 shares) {
         shares = userBalances[user][address(token)];
     }
 
@@ -172,21 +191,30 @@ contract MorphoFork is IYieldProtocol {
     /**
      * @dev Get protocol name
      */
-    function getProtocolName() external pure override returns (string memory name) {
+    function getProtocolName()
+        external
+        pure
+        override
+        returns (string memory name)
+    {
         name = "Morpho Fork";
     }
 
     /**
      * @dev Get total value locked
      */
-    function getTotalTvl(IERC20 token) external view override returns (uint256 tvl) {
+    function getTotalTvl(
+        IERC20 token
+    ) external view override returns (uint256 tvl) {
         tvl = token.balanceOf(address(this));
     }
 
     /**
      * @dev Get exchange rate (1:1 for Morpho)
      */
-    function getExchangeRate(IERC20) external pure override returns (uint256 rate) {
+    function getExchangeRate(
+        IERC20
+    ) external pure override returns (uint256 rate) {
         rate = 1e18;
     }
 

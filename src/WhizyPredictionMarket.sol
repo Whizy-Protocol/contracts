@@ -57,10 +57,26 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     mapping(uint256 => mapping(address => Position)) public positions;
     uint256 public nextMarketId;
 
-    event MarketCreated(uint256 indexed marketId, string question, uint256 endTime, address token, address vault);
-    event BetPlaced(uint256 indexed marketId, address indexed user, bool position, uint256 amount, uint256 shares);
+    event MarketCreated(
+        uint256 indexed marketId,
+        string question,
+        uint256 endTime,
+        address token,
+        address vault
+    );
+    event BetPlaced(
+        uint256 indexed marketId,
+        address indexed user,
+        bool position,
+        uint256 amount,
+        uint256 shares
+    );
     event MarketResolved(uint256 indexed marketId, bool outcome);
-    event WinningsClaimed(uint256 indexed marketId, address indexed user, uint256 amount);
+    event WinningsClaimed(
+        uint256 indexed marketId,
+        address indexed user,
+        uint256 amount
+    );
 
     error MarketNotFound();
     error MarketEnded();
@@ -79,10 +95,11 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     /**
      * @dev Create a new prediction market with its own vault
      */
-    function createMarket(string calldata question, uint256 endTime, address token)
-        external
-        returns (uint256 marketId)
-    {
+    function createMarket(
+        string calldata question,
+        uint256 endTime,
+        address token
+    ) external returns (uint256 marketId) {
         ACCESS_CONTROL.assertOwner(msg.sender);
         require(endTime > block.timestamp, "Invalid end time");
 
@@ -118,7 +135,11 @@ contract WhizyPredictionMarket is ReentrancyGuard {
      * @param isYes true for YES, false for NO
      * @param amount Amount of collateral to bet
      */
-    function placeBet(uint256 marketId, bool isYes, uint256 amount) external nonReentrant {
+    function placeBet(
+        uint256 marketId,
+        bool isYes,
+        uint256 amount
+    ) external nonReentrant {
         require(amount > 0, "Amount must be > 0");
 
         Market storage market = markets[marketId];
@@ -156,7 +177,10 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     /**
      * @dev Resolve market with outcome
      */
-    function resolveMarket(uint256 marketId, bool outcome) external nonReentrant {
+    function resolveMarket(
+        uint256 marketId,
+        bool outcome
+    ) external nonReentrant {
         ACCESS_CONTROL.assertOwner(msg.sender);
 
         Market storage market = markets[marketId];
@@ -184,22 +208,32 @@ contract WhizyPredictionMarket is ReentrancyGuard {
         require(!position.claimed, "Already claimed");
         require(position.yesShares > 0 || position.noShares > 0, "No position");
 
-        uint256 winningShares = market.outcome ? position.yesShares : position.noShares;
-        uint256 losingShares = market.outcome ? position.noShares : position.yesShares;
+        uint256 winningShares = market.outcome
+            ? position.yesShares
+            : position.noShares;
+        uint256 losingShares = market.outcome
+            ? position.noShares
+            : position.yesShares;
 
         position.claimed = true;
 
         uint256 totalPayout = 0;
 
         if (winningShares > 0) {
-            uint256 totalWinningShares = market.outcome ? market.totalYesShares : market.totalNoShares;
-            uint256 totalLosingShares = market.outcome ? market.totalNoShares : market.totalYesShares;
+            uint256 totalWinningShares = market.outcome
+                ? market.totalYesShares
+                : market.totalNoShares;
+            uint256 totalLosingShares = market.outcome
+                ? market.totalNoShares
+                : market.totalYesShares;
 
             uint256 baseAmount = market.vault.convertToAssets(winningShares);
 
             uint256 shareOfLosingPrincipal = 0;
             if (totalWinningShares > 0) {
-                shareOfLosingPrincipal = (totalLosingShares * winningShares) / totalWinningShares;
+                shareOfLosingPrincipal =
+                    (totalLosingShares * winningShares) /
+                    totalWinningShares;
             }
 
             totalPayout = baseAmount + shareOfLosingPrincipal;
@@ -221,10 +255,17 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     /**
      * @dev Get user's potential payout (including current yield)
      */
-    function getPotentialPayout(uint256 marketId, address user)
+    function getPotentialPayout(
+        uint256 marketId,
+        address user
+    )
         external
         view
-        returns (uint256 yesPayoutIfWin, uint256 noPayoutIfWin, uint256 currentYield)
+        returns (
+            uint256 yesPayoutIfWin,
+            uint256 noPayoutIfWin,
+            uint256 currentYield
+        )
     {
         Market storage market = markets[marketId];
         Position storage position = positions[marketId][user];
@@ -237,15 +278,21 @@ contract WhizyPredictionMarket is ReentrancyGuard {
 
         if (position.yesShares > 0 && market.totalYesShares > 0) {
             uint256 baseYes = market.vault.convertToAssets(position.yesShares);
-            uint256 losingPot = market.vault.convertToAssets(market.totalNoShares);
-            uint256 yesShare = (losingPot * position.yesShares) / market.totalYesShares;
+            uint256 losingPot = market.vault.convertToAssets(
+                market.totalNoShares
+            );
+            uint256 yesShare = (losingPot * position.yesShares) /
+                market.totalYesShares;
             yesPayoutIfWin = baseYes + yesShare;
         }
 
         if (position.noShares > 0 && market.totalNoShares > 0) {
             uint256 baseNo = market.vault.convertToAssets(position.noShares);
-            uint256 losingPot = market.vault.convertToAssets(market.totalYesShares);
-            uint256 noShare = (losingPot * position.noShares) / market.totalNoShares;
+            uint256 losingPot = market.vault.convertToAssets(
+                market.totalYesShares
+            );
+            uint256 noShare = (losingPot * position.noShares) /
+                market.totalNoShares;
             noPayoutIfWin = baseNo + noShare;
         }
     }
@@ -253,14 +300,23 @@ contract WhizyPredictionMarket is ReentrancyGuard {
     /**
      * @dev Get market info including yield
      */
-    function getMarketInfo(uint256 marketId)
+    function getMarketInfo(
+        uint256 marketId
+    )
         external
         view
-        returns (Market memory market, uint256 totalAssets, uint256 currentYield, uint256 yieldWithdrawn)
+        returns (
+            Market memory market,
+            uint256 totalAssets,
+            uint256 currentYield,
+            uint256 yieldWithdrawn
+        )
     {
         market = markets[marketId];
         if (address(market.vault) != address(0)) {
-            (totalAssets,, currentYield, yieldWithdrawn,) = market.vault.getVaultInfo();
+            (totalAssets, , currentYield, yieldWithdrawn, ) = market
+                .vault
+                .getVaultInfo();
         }
     }
 

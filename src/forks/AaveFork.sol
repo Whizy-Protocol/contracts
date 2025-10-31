@@ -38,7 +38,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Initialize the protocol
      */
-    function initialize(uint256 initialApy, uint256 _protocolFee) external override onlyOwner {
+    function initialize(
+        uint256 initialApy,
+        uint256 _protocolFee
+    ) external override onlyOwner {
         require(!initialized, "Already initialized");
         currentApy = initialApy;
         protocolFee = _protocolFee;
@@ -48,7 +51,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Deposit tokens and receive liquid staking shares
      */
-    function deposit(IERC20 token, uint256 amount) external override returns (bool success) {
+    function deposit(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (bool success) {
         require(amount > 0, "Invalid amount");
 
         _accrueYield(token);
@@ -68,7 +74,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Withdraw tokens by burning shares
      */
-    function withdraw(IERC20 token, uint256 amount) external override returns (uint256 amountReceived) {
+    function withdraw(
+        IERC20 token,
+        uint256 amount
+    ) external override returns (uint256 amountReceived) {
         require(amount > 0, "Invalid amount");
 
         _accrueYield(token);
@@ -78,7 +87,9 @@ contract AaveFork is IYieldProtocol {
 
         if (amount >= userShareBalance) {
             uint256 vaultBalance = token.balanceOf(address(this));
-            amountReceived = (userShareBalance * vaultBalance) / totalSharesForToken;
+            amountReceived =
+                (userShareBalance * vaultBalance) /
+                totalSharesForToken;
 
             userShares[msg.sender][address(token)] = 0;
             totalShares[address(token)] -= userShareBalance;
@@ -97,15 +108,24 @@ contract AaveFork is IYieldProtocol {
             return amountReceived;
         }
 
-        uint256 requiredShares = _calculateRequiredShares(address(token), amount);
+        uint256 requiredShares = _calculateRequiredShares(
+            address(token),
+            amount
+        );
         require(userShareBalance >= requiredShares, "Insufficient shares");
 
-        amountReceived = _calculateWithdrawalAmount(address(token), requiredShares);
+        amountReceived = _calculateWithdrawalAmount(
+            address(token),
+            requiredShares
+        );
 
         uint256 availableBalance = token.balanceOf(address(this));
         if (amountReceived > availableBalance) {
             amountReceived = availableBalance;
-            requiredShares = _calculateRequiredShares(address(token), amountReceived);
+            requiredShares = _calculateRequiredShares(
+                address(token),
+                amountReceived
+            );
         }
 
         userShares[msg.sender][address(token)] -= requiredShares;
@@ -127,7 +147,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Get user's token balance (principal + yield)
      */
-    function getBalance(address user, IERC20 token) external view override returns (uint256 balance) {
+    function getBalance(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 balance) {
         uint256 shares = userShares[user][address(token)];
         if (shares > 0 && totalShares[address(token)] > 0) {
             uint256 totalAssets = token.balanceOf(address(this));
@@ -138,7 +161,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Get user's shares
      */
-    function getShares(address user, IERC20 token) external view override returns (uint256 shares) {
+    function getShares(
+        address user,
+        IERC20 token
+    ) external view override returns (uint256 shares) {
         shares = userShares[user][address(token)];
     }
 
@@ -152,21 +178,30 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Get protocol name
      */
-    function getProtocolName() external pure override returns (string memory name) {
+    function getProtocolName()
+        external
+        pure
+        override
+        returns (string memory name)
+    {
         name = "Aave Fork";
     }
 
     /**
      * @dev Get total value locked
      */
-    function getTotalTvl(IERC20 token) external view override returns (uint256 tvl) {
+    function getTotalTvl(
+        IERC20 token
+    ) external view override returns (uint256 tvl) {
         tvl = token.balanceOf(address(this));
     }
 
     /**
      * @dev Get exchange rate (shares to tokens)
      */
-    function getExchangeRate(IERC20 token) external view override returns (uint256 rate) {
+    function getExchangeRate(
+        IERC20 token
+    ) external view override returns (uint256 rate) {
         uint256 totalSharesForToken = totalShares[address(token)];
         if (totalSharesForToken == 0) {
             rate = 1e18;
@@ -186,7 +221,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Calculate shares for a given deposit amount
      */
-    function _calculateShares(address tokenAddress, uint256 amount) internal view returns (uint256 shares) {
+    function _calculateShares(
+        address tokenAddress,
+        uint256 amount
+    ) internal view returns (uint256 shares) {
         uint256 totalSharesForToken = totalShares[tokenAddress];
         if (totalSharesForToken == 0) {
             shares = amount;
@@ -199,11 +237,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Calculate required shares for a withdrawal amount
      */
-    function _calculateRequiredShares(address tokenAddress, uint256 amount)
-        internal
-        view
-        returns (uint256 requiredShares)
-    {
+    function _calculateRequiredShares(
+        address tokenAddress,
+        uint256 amount
+    ) internal view returns (uint256 requiredShares) {
         uint256 totalSharesForToken = totalShares[tokenAddress];
         if (totalSharesForToken == 0) {
             requiredShares = amount;
@@ -216,7 +253,10 @@ contract AaveFork is IYieldProtocol {
     /**
      * @dev Calculate withdrawal amount for given shares
      */
-    function _calculateWithdrawalAmount(address tokenAddress, uint256 shares) internal view returns (uint256 amount) {
+    function _calculateWithdrawalAmount(
+        address tokenAddress,
+        uint256 shares
+    ) internal view returns (uint256 amount) {
         uint256 totalSharesForToken = totalShares[tokenAddress];
         if (totalSharesForToken == 0) {
             amount = shares;
@@ -249,7 +289,8 @@ contract AaveFork is IYieldProtocol {
             return;
         }
 
-        uint256 yieldAmount = (principal * currentApy * timeElapsed) / (365 days * 10000);
+        uint256 yieldAmount = (principal * currentApy * timeElapsed) /
+            (365 days * 10000);
 
         if (yieldAmount > 0) {
             try USDC(address(token)).mint(address(this), yieldAmount) {

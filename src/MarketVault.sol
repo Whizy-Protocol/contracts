@@ -48,10 +48,13 @@ contract MarketVault is ERC4626 {
      * @param market_ Address of the prediction market contract
      * @param protocolSelector_ Address of the protocol selector for yield
      */
-    constructor(IERC20 asset_, string memory name_, string memory symbol_, address market_, address protocolSelector_)
-        ERC4626(asset_)
-        ERC20(name_, symbol_)
-    {
+    constructor(
+        IERC20 asset_,
+        string memory name_,
+        string memory symbol_,
+        address market_,
+        address protocolSelector_
+    ) ERC4626(asset_) ERC20(name_, symbol_) {
         MARKET = market_;
         PROTOCOL_SELECTOR = ProtocolSelector(protocolSelector_);
         yieldEnabled = protocolSelector_ != address(0);
@@ -65,7 +68,10 @@ contract MarketVault is ERC4626 {
         uint256 vaultBalance = IERC20(asset()).balanceOf(address(this));
 
         if (yieldEnabled && address(PROTOCOL_SELECTOR) != address(0)) {
-            uint256 protocolBalance = PROTOCOL_SELECTOR.getTotalBalance(address(PROTOCOL_SELECTOR), IERC20(asset()));
+            uint256 protocolBalance = PROTOCOL_SELECTOR.getTotalBalance(
+                address(PROTOCOL_SELECTOR),
+                IERC20(asset())
+            );
             return vaultBalance + protocolBalance;
         }
 
@@ -77,7 +83,9 @@ contract MarketVault is ERC4626 {
      * Only callable by the market contract
      * Tokens must be transferred to this contract before calling
      */
-    function depositForMarket(uint256 assets) external onlyMarket returns (uint256 shares) {
+    function depositForMarket(
+        uint256 assets
+    ) external onlyMarket returns (uint256 shares) {
         require(assets > 0, "Cannot deposit 0");
 
         uint256 supply = totalSupply();
@@ -95,9 +103,14 @@ contract MarketVault is ERC4626 {
             uint256 vaultBalance = IERC20(asset()).balanceOf(address(this));
 
             if (vaultBalance >= assets) {
-                IERC20(asset()).safeIncreaseAllowance(address(PROTOCOL_SELECTOR), assets);
+                IERC20(asset()).safeIncreaseAllowance(
+                    address(PROTOCOL_SELECTOR),
+                    assets
+                );
 
-                try PROTOCOL_SELECTOR.autoDeposit(IERC20(asset()), assets) returns (bool success, string memory) {
+                try
+                    PROTOCOL_SELECTOR.autoDeposit(IERC20(asset()), assets)
+                returns (bool success, string memory) {
                     if (success) {
                         emit YieldDeposited(assets);
                     }
@@ -112,22 +125,34 @@ contract MarketVault is ERC4626 {
      * @dev Withdraw assets from the vault (pulls from protocols if needed)
      * Only callable by the market contract
      */
-    function withdrawForMarket(uint256 assets, address recipient) external onlyMarket returns (uint256 shares) {
+    function withdrawForMarket(
+        uint256 assets,
+        address recipient
+    ) external onlyMarket returns (uint256 shares) {
         uint256 vaultBalance = IERC20(asset()).balanceOf(address(this));
 
-        if (vaultBalance < assets && yieldEnabled && address(PROTOCOL_SELECTOR) != address(0)) {
+        if (
+            vaultBalance < assets &&
+            yieldEnabled &&
+            address(PROTOCOL_SELECTOR) != address(0)
+        ) {
             uint256 needed = assets - vaultBalance;
 
-            uint256 protocolBalance = PROTOCOL_SELECTOR.getTotalBalance(address(PROTOCOL_SELECTOR), IERC20(asset()));
+            uint256 protocolBalance = PROTOCOL_SELECTOR.getTotalBalance(
+                address(PROTOCOL_SELECTOR),
+                IERC20(asset())
+            );
 
             uint256 toWithdraw;
-            if (needed > protocolBalance * 95 / 100) {
+            if (needed > (protocolBalance * 95) / 100) {
                 toWithdraw = protocolBalance;
             } else {
                 toWithdraw = needed + (needed / 100) + 100;
             }
 
-            try PROTOCOL_SELECTOR.autoWithdraw(IERC20(asset()), toWithdraw) returns (uint256 amountReceived) {
+            try
+                PROTOCOL_SELECTOR.autoWithdraw(IERC20(asset()), toWithdraw)
+            returns (uint256 amountReceived) {
                 if (amountReceived > needed) {
                     totalYieldWithdrawn += (amountReceived - needed);
                 }
@@ -143,7 +168,10 @@ contract MarketVault is ERC4626 {
             uint256 tolerance = assets / 10000;
             if (tolerance < 1000) tolerance = 1000;
 
-            require(shortage <= tolerance, "Requested amount exceeds available balance");
+            require(
+                shortage <= tolerance,
+                "Requested amount exceeds available balance"
+            );
             assets = maxAvailable;
         }
 
@@ -172,7 +200,9 @@ contract MarketVault is ERC4626 {
      * @param shares Number of shares held
      * @return yieldAmount Yield amount for those shares
      */
-    function getYieldForShares(uint256 shares) external view returns (uint256 yieldAmount) {
+    function getYieldForShares(
+        uint256 shares
+    ) external view returns (uint256 yieldAmount) {
         uint256 totalCurrentYield = this.getCurrentYield();
         uint256 totalShares = totalSupply();
 
@@ -188,14 +218,19 @@ contract MarketVault is ERC4626 {
      * @param shares Number of shares
      * @return assets Asset value including proportional yield
      */
-    function convertToAssetsWithYield(uint256 shares) external view returns (uint256 assets) {
+    function convertToAssetsWithYield(
+        uint256 shares
+    ) external view returns (uint256 assets) {
         assets = convertToAssets(shares);
     }
 
     /**
      * @dev Emergency function to recover stuck tokens (only market can call)
      */
-    function emergencyWithdraw(IERC20 token, address recipient) external onlyMarket {
+    function emergencyWithdraw(
+        IERC20 token,
+        address recipient
+    ) external onlyMarket {
         uint256 balance = token.balanceOf(address(this));
         if (balance > 0) {
             token.safeTransfer(recipient, balance);
@@ -220,6 +255,8 @@ contract MarketVault is ERC4626 {
         totalShares = totalSupply();
         currentYield = this.getCurrentYield();
         yieldWithdrawn = totalYieldWithdrawn;
-        exchangeRate = totalShares > 0 ? (totalAssetsInVault * 1e18) / totalShares : 1e18;
+        exchangeRate = totalShares > 0
+            ? (totalAssetsInVault * 1e18) / totalShares
+            : 1e18;
     }
 }
